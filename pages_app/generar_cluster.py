@@ -137,7 +137,8 @@ class ClusteringPage:
             cluster_col = 'cluster'
             cols_to_show = cat_vars + [cluster_col]
             st.session_state['df'] = st.session_state['lda_df']
-            st.session_state['cluster_preview'] = st.session_state['lda_df'][cols_to_show].head()
+            st.session_state['cluster_preview'] = st.session_state['lda_df'][cols_to_show].head(
+            )
             st.write(st.session_state['cluster_preview'])
 
         if 'cluster_preview' in st.session_state and st.session_state.get('method') != "LDA":

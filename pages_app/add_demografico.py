@@ -14,7 +14,8 @@ class DemographicEnrichmentPage:
         st.header("4. Enriquecimiento Demográfico")
         df_demo = load_csv()
         if df_demo is not None and ('models' in st.session_state or st.session_state.get('method') == "LDA"):
-            cluster_col = 'cluster' if st.session_state.get('method') == "LDA" else 'cluster'
+            cluster_col = 'cluster' if st.session_state.get(
+                'method') == "LDA" else 'cluster'
             df = st.session_state['df'][[
                 st.session_state['id_col'], cluster_col
             ] + (st.session_state.get('vars', []) or st.session_state.get('cat_vars', []))].copy()
@@ -81,14 +82,16 @@ class DemographicEnrichmentPage:
             for i, var in enumerate(st.session_state['demo_vars']):
                 # Buscar la columna original o con sufijo _x/_y
                 col_candidates = [var, f"{var}_x", f"{var}_y"]
-                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                col_found = next(
+                    (c for c in col_candidates if c in st.session_state['merged'].columns), None)
                 if col_found:
                     with heatmap_cols[i % 2]:
                         st.plotly_chart(plot_heatmap(
                             st.session_state['merged'], cluster_col, col_found))
                 else:
                     with heatmap_cols[i % 2]:
-                        st.info(f"La variable '{var}' no está presente en el merge.")
+                        st.info(
+                            f"La variable '{var}' no está presente en el merge.")
                 if i % 2 == 1 and i != len(st.session_state['demo_vars']) - 1:
                     heatmap_cols = st.columns(2)
 
@@ -96,7 +99,8 @@ class DemographicEnrichmentPage:
             boxplot_cols = st.columns(2)
             for i, var in enumerate(st.session_state['demo_vars']):
                 col_candidates = [var, f"{var}_x", f"{var}_y"]
-                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                col_found = next(
+                    (c for c in col_candidates if c in st.session_state['merged'].columns), None)
                 if col_found and st.session_state['merged'][col_found].dtype in ['int64', 'float64']:
                     with boxplot_cols[i % 2]:
                         st.plotly_chart(plot_boxplot(
@@ -106,7 +110,8 @@ class DemographicEnrichmentPage:
                         st.info(f"La variable '{var}' no es numérica.")
                 else:
                     with boxplot_cols[i % 2]:
-                        st.info(f"La variable '{var}' no está presente en el merge.")
+                        st.info(
+                            f"La variable '{var}' no está presente en el merge.")
 
             if cluster_col in st.session_state['merged'].columns and len(st.session_state['merged'][cluster_col].unique()) <= 5:
                 st.subheader("Radar Chart")
@@ -126,7 +131,8 @@ class DemographicEnrichmentPage:
             barplot_cols = st.columns(2)
             for i, var in enumerate(st.session_state['demo_vars']):
                 col_candidates = [var, f"{var}_x", f"{var}_y"]
-                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                col_found = next(
+                    (c for c in col_candidates if c in st.session_state['merged'].columns), None)
                 if col_found and st.session_state['merged'][col_found].dtype == 'object':
                     with barplot_cols[i % 2]:
                         st.plotly_chart(plot_bar_chart(
@@ -136,7 +142,8 @@ class DemographicEnrichmentPage:
                         st.info(f"La variable '{var}' no es categórica.")
                 else:
                     with barplot_cols[i % 2]:
-                        st.info(f"La variable '{var}' no está presente en el merge.")
+                        st.info(
+                            f"La variable '{var}' no está presente en el merge.")
 
 
 # Para compatibilidad
