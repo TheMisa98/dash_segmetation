@@ -5,6 +5,9 @@ from sklearn.mixture import GaussianMixture
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from typing import Dict, Any, List
+import numpy as np
+from sklearn.decomposition import LatentDirichletAllocation
+from sklearn.preprocessing import OneHotEncoder
 
 
 class ClusteringStrategy:
@@ -80,3 +83,35 @@ def compute_aic_bic(models: Dict[int, GaussianMixture], df: pd.DataFrame) -> pd.
 
 def compute_silhouette(models: Dict[int, Any], df: pd.DataFrame) -> List[float]:
     return ClusteringMetrics.compute_silhouette(models, df)
+
+
+def run_lda_segmentation(
+    df: pd.DataFrame,
+    cat_vars: list[str],
+    n_segments: int = 4,
+    random_state: int = 42
+) -> tuple[pd.DataFrame, np.ndarray]:
+    """
+    Aplica LDA sobre variables categóricas para segmentar.
+    Args:
+        df: DataFrame original.
+        cat_vars: lista de columnas categóricas.
+        n_segments: número de tópicos (clusters).
+        random_state: semilla.
+    Returns:
+        df_out: copia de df con columna 'cluster'.
+        probas: matriz de probabilidades (shape = [n_samples, n_segments]).
+    """
+    data = df[cat_vars].copy()
+    encoder = OneHotEncoder(sparse_output=False)
+    X = encoder.fit_transform(data)
+
+    lda = LatentDirichletAllocation(
+        n_components=n_segments, random_state=random_state
+    )
+    probas = lda.fit_transform(X)  # shape (n_samples, n_segments)
+
+    # Asignamos el cluster de mayor probabilidad
+    df_out = df.copy()
+    df_out["cluster"] = np.argmax(probas, axis=1)
+    return df_out, probas

@@ -13,9 +13,11 @@ class DemographicEnrichmentPage:
     def show() -> None:
         st.header("4. Enriquecimiento Demográfico")
         df_demo = load_csv()
-        if df_demo is not None and 'models' in st.session_state:
+        if df_demo is not None and ('models' in st.session_state or st.session_state.get('method') == "LDA"):
+            cluster_col = 'cluster' if st.session_state.get('method') == "LDA" else 'cluster'
             df = st.session_state['df'][[
-                st.session_state['id_col'], 'cluster'] + st.session_state['vars']].copy()
+                st.session_state['id_col'], cluster_col
+            ] + (st.session_state.get('vars', []) or st.session_state.get('cat_vars', []))].copy()
             id_col = st.session_state.get('id_col_demo', None)
             if id_col not in df_demo.columns:
                 st.warning(
@@ -69,40 +71,72 @@ class DemographicEnrichmentPage:
             st.subheader("Vista previa del merge realizado:")
             st.write(st.session_state['merged'].head())
             export_results(
-                st.session_state['merged'], st.session_state['models'])
+                st.session_state['merged'], st.session_state.get('models', {}))
             st.subheader("Visualizaciones Demográficas")
             st.plotly_chart(plot_countplot(
-                st.session_state['merged'], 'cluster'))
+                st.session_state['merged'], cluster_col))
 
             st.subheader("Heatmaps por Variable Demográfica")
             heatmap_cols = st.columns(2)
             for i, var in enumerate(st.session_state['demo_vars']):
-                with heatmap_cols[i % 2]:
-                    st.plotly_chart(plot_heatmap(
-                        st.session_state['merged'], 'cluster', var))
+                # Buscar la columna original o con sufijo _x/_y
+                col_candidates = [var, f"{var}_x", f"{var}_y"]
+                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                if col_found:
+                    with heatmap_cols[i % 2]:
+                        st.plotly_chart(plot_heatmap(
+                            st.session_state['merged'], cluster_col, col_found))
+                else:
+                    with heatmap_cols[i % 2]:
+                        st.info(f"La variable '{var}' no está presente en el merge.")
                 if i % 2 == 1 and i != len(st.session_state['demo_vars']) - 1:
                     heatmap_cols = st.columns(2)
 
             st.subheader("Boxplots por Cluster")
             boxplot_cols = st.columns(2)
             for i, var in enumerate(st.session_state['demo_vars']):
-                if st.session_state['merged'][var].dtype in ['int64', 'float64']:
+                col_candidates = [var, f"{var}_x", f"{var}_y"]
+                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                if col_found and st.session_state['merged'][col_found].dtype in ['int64', 'float64']:
                     with boxplot_cols[i % 2]:
                         st.plotly_chart(plot_boxplot(
-                            st.session_state['merged'], var, 'cluster'))
+                            st.session_state['merged'], col_found, cluster_col))
+                elif col_found:
+                    with boxplot_cols[i % 2]:
+                        st.info(f"La variable '{var}' no es numérica.")
+                else:
+                    with boxplot_cols[i % 2]:
+                        st.info(f"La variable '{var}' no está presente en el merge.")
 
-            if len(st.session_state['merged']['cluster'].unique()) <= 5:
+            if cluster_col in st.session_state['merged'].columns and len(st.session_state['merged'][cluster_col].unique()) <= 5:
                 st.subheader("Radar Chart")
-                st.plotly_chart(plot_radar_chart(
-                    st.session_state['merged'], 'cluster', st.session_state['demo_vars']))
+                radar_vars = []
+                for v in st.session_state['demo_vars']:
+                    for c in [v, f"{v}_x", f"{v}_y"]:
+                        if c in st.session_state['merged'].columns:
+                            radar_vars.append(c)
+                            break
+                if radar_vars:
+                    st.plotly_chart(plot_radar_chart(
+                        st.session_state['merged'], cluster_col, radar_vars))
+                else:
+                    st.info("No hay variables válidas para el radar chart.")
 
             st.subheader("Gráficos de Barras por Categoría")
             barplot_cols = st.columns(2)
             for i, var in enumerate(st.session_state['demo_vars']):
-                if st.session_state['merged'][var].dtype == 'object':
+                col_candidates = [var, f"{var}_x", f"{var}_y"]
+                col_found = next((c for c in col_candidates if c in st.session_state['merged'].columns), None)
+                if col_found and st.session_state['merged'][col_found].dtype == 'object':
                     with barplot_cols[i % 2]:
                         st.plotly_chart(plot_bar_chart(
-                            st.session_state['merged'], var, 'cluster'))
+                            st.session_state['merged'], col_found, cluster_col))
+                elif col_found:
+                    with barplot_cols[i % 2]:
+                        st.info(f"La variable '{var}' no es categórica.")
+                else:
+                    with barplot_cols[i % 2]:
+                        st.info(f"La variable '{var}' no está presente en el merge.")
 
 
 # Para compatibilidad

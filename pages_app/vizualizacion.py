@@ -2,8 +2,11 @@ import streamlit as st
 from utils.plots import (
     plot_membership_heatmap,
     plot_dimensionality_reduction,
-    plot_dimensionality_reduction_3d
+    plot_dimensionality_reduction_3d,
+    plot_bar_chart
 )
+import numpy as np
+import plotly.express as px
 
 
 class VisualizationPage:
@@ -12,6 +15,25 @@ class VisualizationPage:
     @staticmethod
     def show() -> None:
         st.header("3. Visualización de Pertenencias")
+        if st.session_state.get('method') == "LDA" and 'lda_probas' in st.session_state:
+            df = st.session_state['df']
+            cat_vars = st.session_state.get('cat_vars', [])
+            st.subheader(
+                "Distribución de variables categóricas por cluster (LDA)")
+            if cat_vars:
+                bar_cols = st.columns(2)
+                for i, var in enumerate(cat_vars):
+                    with bar_cols[i % 2]:
+                        st.plotly_chart(
+                            plot_bar_chart(df, var, "cluster"),
+                            use_container_width=True
+                        )
+                    if i % 2 == 1 and i != len(cat_vars) - 1:
+                        bar_cols = st.columns(2)
+            else:
+                st.info("No hay variables categóricas seleccionadas para mostrar.")
+            return
+
         if 'models' not in st.session_state:
             st.warning("Ejecuta primero el clustering.")
             return

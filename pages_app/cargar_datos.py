@@ -24,14 +24,23 @@ class DataSelectionPage:
 
         df = load_csv()
         if df is not None:
+            # Limpiar variables de session_state relacionadas con el dataset anterior
+            for key in [
+                'id_col', 'vars', 'cat_vars', 'preview_cleaned', 'df', 'models',
+                'metrics', 'inertia', 'silhouette_scores', 'optimal_k', 'viz_k_opt',
+                'cluster_preview', 'lda_df', 'lda_probas', 'merged', 'id_col_demo',
+                'demo_vars'
+            ]:
+                if key in st.session_state:
+                    del st.session_state[key]
+
             st.success(
                 f"Datos cargados con {df.shape[0]} filas y {df.shape[1]} columnas.")
 
             id_col = st.selectbox(
                 "Selecciona la columna de identificador único",
                 df.columns,
-                index=df.columns.get_loc(
-                    st.session_state.get('id_col', df.columns[0]))
+                index=0  # Siempre selecciona la primera columna por defecto tras limpiar
             )
             if not df[id_col].is_unique:
                 st.error(
@@ -41,10 +50,17 @@ class DataSelectionPage:
             st.session_state['id_col'] = id_col
 
             numeric_cols = df.select_dtypes(include="number").columns.tolist()
+            cat_cols = df.select_dtypes(include="object").columns.tolist()
+
             seleccion = st.multiselect(
-                "Variables para segmentar",
+                "Variables numéricas para segmentar (GMM/K-Means)",
                 numeric_cols,
-                default=st.session_state.get('vars', [])
+                default=[]
+            )
+            seleccion_cat = st.multiselect(
+                "Variables categóricas para segmentar (LDA)",
+                cat_cols,
+                default=[]
             )
 
             if st.button("Confirmar selección de variables"):
@@ -52,12 +68,14 @@ class DataSelectionPage:
                     st.write("Variables seleccionadas:", seleccion)
                     df[seleccion] = clean_data(df[seleccion])
                     st.success("Datos limpiados correctamente.")
-                    st.session_state['df'] = df
-                    st.session_state['vars'] = seleccion
-                    st.session_state['preview_cleaned'] = df[seleccion].head()
-                    st.subheader(
-                        "Vista previa de los datos seleccionados y limpiados:")
-                    st.write(st.session_state['preview_cleaned'])
+                st.session_state['df'] = df
+                st.session_state['vars'] = seleccion
+                st.session_state['cat_vars'] = seleccion_cat
+                st.session_state['preview_cleaned'] = df[seleccion].head(
+                ) if seleccion else df.head()
+                st.subheader(
+                    "Vista previa de los datos seleccionados y limpiados:")
+                st.write(st.session_state['preview_cleaned'])
 
 
 # Para compatibilidad
